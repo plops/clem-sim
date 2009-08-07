@@ -1,0 +1,222 @@
+\documentclass[11pt,abstracton,titlepage]{scrartcl}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{units}
+\usepackage{amsmath}
+\usepackage{verbatim}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{textcomp}
+\definecolor{listinggray}{gray}{0.9}
+\definecolor{lbcolor}{rgb}{0.9,0.9,0.9}
+\lstset{
+	backgroundcolor=\color{lbcolor},
+	tabsize=4,
+	rulecolor=,
+	language=matlab,
+        basicstyle=\scriptsize,
+        upquote=true,
+        aboveskip={1.5\baselineskip},
+        columns=fixed,
+        showstringspaces=false,
+        extendedchars=true,
+        breaklines=true,
+        prebreak = \raisebox{0ex}[0ex][0ex]{\ensuremath{\hookleftarrow}},
+        frame=single,
+        showtabs=false,
+        showspaces=false,
+        showstringspaces=false,
+        identifierstyle=\ttfamily,
+        keywordstyle=\color[rgb]{0,0,1},
+        commentstyle=\color[rgb]{0.133,0.545,0.133},
+        stringstyle=\color[rgb]{0.627,0.126,0.941},
+}
+
+\newcommand{\abs}[1]{\left| #1 \right|}
+\newcommand{\avg}[1]{\langle #1 \rangle}
+\newcommand{\figref}[1]{Figure~\ref{#1}}
+
+\title{CLEM PAM}
+\author{Martin Kielhorn}
+
+\begin{document}
+\section{State of the Art}
+If a fluorescent plane is imaged with a fluorescence widefield
+microscope, the intensity of the image is constant no matter if the
+plane is in-focus or not. 
+\subsection{Apotome}
+Using non-uniform excitation light the Wilson group was able to
+circumvent this problem (\cite{1997Neil}). They project a grid pattern
+into the sample. For a fluorescent plane sample the modulation in the
+image is highest, when the sample is in-focus. If the plane is moved
+out of focus, the modulation decreases. Hence it is possible to achieve
+z-sectioning in a widefield microscope.
+
+For one section $I_p$ they combine three grating images $I_i$ (grating
+period $1/\nu$) with different phases:
+\begin{align}
+  I_p=\abs{I_1+I_2e^{i2\pi/3}+I_3e^{i4\pi/3}}
+  \sim\abs{ 2 \frac{J_1(2u\nu(1-\nu/2))}{u\nu(1-\nu/2)}}.
+\end{align}
+
+The last term is their result for the intensity of a fluorescent plane
+with the defocus $u$. If no grating is displayed ($\nu=0$) the
+resulting image $I_p$ is constant and the microscope has no sectioning
+capability. A fine grating gives best sectioning capability (but one
+has to make a tradeoff as a fine grating will give very low contrast
+in a thick specimen).
+
+For this method is necessary to capture three images to generate one
+sectioned slice. This can be a problem if the movement of the grating
+isn't perfect or if the object moves during these exposures.
+
+\subsection{HiLo}
+This problem is addressed by Jerome Mertz et al.\ (\cite{2008Lim},
+\cite{2009Santos}). They realised that only two images need to be
+captured for each z-sectioned slice.
+An image with uniform illumination contains contributions
+of both in-focus and out-of-focus fluorophores:
+\begin{align}
+  I_u(x,y)=I_\textrm{in}(x,y)+I_\textrm{out}(x,y).
+\end{align}
+Due to the structure of the OTF out-of-focus light is limited to low
+spatial frequencies.
+
+The modulated part of the non-uniformly illuminated image contains only
+information of the in-focus object structure:
+\begin{align}
+  I_n(x,y)&=I_\textrm{in}(x,y)(1+M
+  \sin(\kappa x+\varphi))+I_\textrm{out}(x,y),\\
+  \kappa&=\frac{2\pi}{\lambda}n\sin(\alpha)\nu.
+\end{align}
+
+The sectioned image is a combination of high-frequency components of
+the widefield image $I_u$ and the low-frequency components of the
+modulated part of the non-uniform image $I_n$.
+
+\subsubsection{Grating}
+
+\subsubsection{Speckle}
+In the older publication (\cite{2008Lim}) a random speckle pattern is
+projected into the sample (presumably because this is experimentally
+easier than projecting a grating). For completeness I describe my
+reimplementation of their method. However I only test it on
+numerically simulated data with a projected grating.
+
+In order to process the non-uniform image it is divided into
+subregions.  As a measure of local contrast in each of these
+subregions the relative standard deviation is calculated 
+(the operator $\avg{\cdot}$ indicates averaging):
+\begin{align}
+  c_n=\frac{\sqrt{\avg{I_n^2}-\avg{I_n}^2}}{\avg{I_n}}.
+\end{align}
+The relative standard deviation $c_n$ will be zero for image regions
+without in-focus contributions. Its value increases as the modulation
+of the non-uniform illumination increases (that's what we
+want). However $c_n$ also increases if there is a small in-focus
+feature. In that we are not interested as we only want to build up an
+image of in-focus fluorophores with low spatial frequencies. To
+correct for that we refer to the most complicated part of the paper
+(in my opinion) -- its equation (4). I will repeat their argument
+here.
+
+Let $O$ be the image intensity obtained with perfectly uniform
+illumination and $S$ the image intensity for the non-uniform
+illumination a uniform object. Then the uniformly illuminated image of
+the object is:
+%FIXME Obviously I still don't understand it!
+\begin{align}
+  I_u\approx (\avg{O}+\delta O)\avg{S}.
+\end{align}
+Here the change of $I_u$ due to some object variations $\delta O$ can
+only come from in-focus contributions.
+
+\begin{align}
+\label{in}
+  I_n\approx (\avg{O}+\delta O)(\avg{S}+\delta S).
+\end{align}
+Here too, $\delta O$ and $\delta S$ come from the focus plane.
+
+Now by squaring equation \ref{in}
+\begin{align}
+  I_n^2\approx \avg{O}\avg{S} + \delta O \avg{S} +\delta S\avg{S} +
+  \delta S \delta O.
+\end{align}
+
+blablabla...
+
+Somehow it turns out that the corrected relative standard deviantion
+of the non-uniform illumination can be calculated like this:
+\begin{align} 
+  c_s^2=\frac{c_n^2-c_0^2}{1+c_0^2}.
+\end{align}
+With the relative standard deviation $c_0$ of the widefield image
+$I_u$.
+
+
+\section{On the numerical test sample}
+\begin{figure}[htb]
+  \centering
+  \includegraphics{grating_xz}
+
+  \caption{Left: x-z-Section %\verb!imgrat(:,64,:)! of the coherent
+    image of the grating in object space.}
+  \label{fig:grating}
+\end{figure}
+
+As a test object I create a sphere shell, a line and a rectangle.
+That is shown in the following code.  The objective is a NA1.4 oil
+with coherent \unit[473]{nm} excitation light and detection is at
+\unit[520]{nm} (incoherent).
+
+Some images of this simulation are shown in \figref{fig:grating}.
+
+\begin{lstlisting}%%
+n=128;
+nmperpixel=100;
+sz=2;
+znmperpixel=sz*nmperpixel;
+%% vector psf for excitation illumination
+asf=squeeze(kSimPSF({'lambdaEx',473;'na',NA;'ri',1.518;...
+    'sX',n;'sY',n;'sZ',sz*n;...
+    'scaleX',nmperpixel;'scaleY',nmperpixel;'scaleZ',znmperpixel;...
+    'computeASF',1}));
+
+
+%% grating of period P
+% one pixel is 100nm so the period is P*100nm
+P=6;
+grat2d=(mod(xx(n,n),P)>(floor(P/2)-1))*1000;
+%% fill a 3d grating
+grat=newim(n,n,sz*n);
+grat(:,:,(sz*n)/2)=grat2d(:,:);
+kgrat=ft(grat);
+
+%% coherent imaging
+imgratx=ift(kgrat.*ft(squeeze(asf(:,:,:,0))));
+imgraty=ift(kgrat.*ft(squeeze(asf(:,:,:,1))));
+imgratz=ift(kgrat.*ft(squeeze(asf(:,:,:,2))));
+imgrat=abs(imgratx).^2+abs(imgraty).^2+abs(imgratz).^2
+
+%% for imaging the fluorescence light
+psf=kSimPSF({'lambdaEx',473;'lambdaEm',520;'na',1.4;'ri',1.518;...
+        'sX',n;'sY',n;'sZ',sz*n;...
+        'scaleX',nmperpixel;'scaleY',nmperpixel;'scaleZ',znmperpixel});
+%% ft thereof
+kpsf=ft(psf);
+
+%% as an object I want a hollow sphere
+% I define it in k-space
+kobj=sinc(rr(kpsf)./2).*sinc(rr(kpsf)./0.7);
+
+% this is the sphere
+obj=rr(psf).*abs(ift(kobj));
+maximum=max(obj);
+% in-focus rectangle in right top
+obj(83:114,23:43,(sz*n)/2)=4*maximum;
+% in-focus line on the left
+obj(21:21,40:90,(sz*n)/2)=12*maximum;
+\end{lstlisting}
+\bibliographystyle{plain}
+\bibliography{clempam}
+\end{document}
