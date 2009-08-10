@@ -7,6 +7,9 @@
 \usepackage{listings}
 \usepackage{color}
 \usepackage{textcomp}
+
+\usepackage{refcheck} % for draft
+
 \definecolor{listinggray}{gray}{0.9}
 \definecolor{lbcolor}{rgb}{0.9,0.9,0.9}
 \lstset{
@@ -72,7 +75,7 @@ isn't perfect or if the object moves during these exposures.
 
 \subsection{HiLo}
 This problem is addressed by Jerome Mertz et al.\ (\cite{2008Lim},
-\cite{2009Santos}). They realised that only two images need to be
+\cite{2009Santos}). They discovered that only two images need to be
 captured for each z-sectioned slice.
 An image with uniform illumination contains contributions
 of both in-focus and out-of-focus fluorophores:
@@ -155,23 +158,21 @@ $I_u$.
 
 
 \section{On the numerical test sample}
-\begin{figure}[htb]
-  \centering
-  \includegraphics{grating_xz}
 
-  \caption{Left: x-z-Section %\verb!imgrat(:,64,:)! of the coherent
-    image of the grating in object space.}
-  \label{fig:grating}
-\end{figure}
 
 As a test object I create a sphere shell, a line and a rectangle.
 That is shown in the following code.  The objective is a NA1.4 oil
 with coherent \unit[473]{nm} excitation light and detection is at
 \unit[520]{nm} (incoherent).
 
-Some images of this simulation are shown in \figref{fig:grating}.
+The following listing shows how the image of the grating for
+non-uniform excitation is calculated. The z-section of the result is
+shown in \figref{fig:grating}. The illumination source is coherent
+therefore the grating structure is visible over quite a large
+z-distance (due to the reimaging by the Talbot effect).
 
-\begin{lstlisting}%%
+
+\begin{lstlisting}
 n=128;
 nmperpixel=100;
 sz=2;
@@ -197,14 +198,29 @@ imgratx=ift(kgrat.*ft(squeeze(asf(:,:,:,0))));
 imgraty=ift(kgrat.*ft(squeeze(asf(:,:,:,1))));
 imgratz=ift(kgrat.*ft(squeeze(asf(:,:,:,2))));
 imgrat=abs(imgratx).^2+abs(imgraty).^2+abs(imgratz).^2
+\end{lstlisting}
 
-%% for imaging the fluorescence light
-psf=kSimPSF({'lambdaEx',473;'lambdaEm',520;'na',1.4;'ri',1.518;...
-        'sX',n;'sY',n;'sZ',sz*n;...
-        'scaleX',nmperpixel;'scaleY',nmperpixel;'scaleZ',znmperpixel});
-%% ft thereof
-kpsf=ft(psf);
+\begin{figure}[htb]
+  \centering
+  \includegraphics{grating_xz}
 
+  \caption{x-z-Section {\tt imgrat(:,64,:)} of the coherent
+    image of the grating in object space.}
+  \label{fig:grating}
+\end{figure}
+
+The following listing shows how the sample object (i.e. fluorophore
+concentration) is generated.  It consists of a spherical shell
+(calculated by the product of two Sinc functions in k-space and a
+product with $r$ in real space). There is also a vertical line and a
+rectangle. A slice through the simulated fluorophore concentration is
+shown \figref{fig:input} left.
+
+The shift by {\tt dz} in z-direction is done by multiplication with
+$\exp(-ik{\tt dz})$ in k-space. This is only a good method to defocus
+small distances {\tt dz} as the object will wrap around the borders.
+
+\begin{lstlisting}
 %% as an object I want a hollow sphere
 % I define it in k-space
 kobj=sinc(rr(kpsf)./2).*sinc(rr(kpsf)./0.7);
@@ -216,7 +232,76 @@ maximum=max(obj);
 obj(83:114,23:43,(sz*n)/2)=4*maximum;
 % in-focus line on the left
 obj(21:21,40:90,(sz*n)/2)=12*maximum;
+
+%% shift the object a little bit in z
+kobj=ft(obj);
+dz=1; % shift in pixels -> 1 equals 100nm
+kobj=kobj.*exp(-i*2*pi*zz(kobj,'freq')*dz);
+obj=ift(kobj);
 \end{lstlisting}
+
+In order to simulate the final image the fluorophore concentration is
+multiplied by the excitation field and the result is convolved with
+the PSF of the microobjective (this time according to the rules of
+incoherent imaging). The Matlab code for this is shown in the
+following listing:
+\begin{lstlisting}
+%% for imaging the fluorescence light
+psf=kSimPSF({'lambdaEx',473;'lambdaEm',520;'na',1.4;'ri',1.518;...
+        'sX',n;'sY',n;'sZ',sz*n;...
+        'scaleX',nmperpixel;'scaleY',nmperpixel;'scaleZ',znmperpixel});
+%% ft thereof
+kpsf=ft(psf);
+%% excited fluorophores
+fluo=obj.*imgrat;
+
+%% fluorescence image with structured illumination
+strucflimg=ift(ft(fluo).*kpsf);
+
+%% widefield fluorescence image
+flimg=ift(ft(obj).*kpsf);
+
+%% extract focal planes
+iu=real(squeeze(flimg(:,:,(sz*n)/2)));     % uniform illumination
+in=real(squeeze(strucflimg(:,:,(sz*n)/2)));% structured illumination
+\end{lstlisting}
+
+
+The image for uniform illumination is shown in
+the middle of \figref{fig:input}. The right picture shows the image
+for non-uniform illumination with the \unit[600]{nm}-period grid.
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=4cm]{obj}
+  \includegraphics[width=4cm]{iu}
+  \includegraphics[width=4cm]{in}
+  \caption{From left to right: Slice of the object in the focal
+    plane. It consists of a line, a spherical shell and a
+    rectangle. Only the shell is extended in z. Image with widefield
+    illumination. Image with structured illumination (grating period
+    \unit[600]{nm}). The scalebar is \unit[2]{$\mu$m} wide. }
+  \label{fig:input}
+\end{figure}
+
+\figref{fig:defocus} shows the non-uniformly illuminated images for
+the object being moved relative to the plane of focus. The line and
+the rectangle are both blurred and the contrast of the grating
+decreases.
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=4cm]{in100}
+  \includegraphics[width=4cm]{in200}
+  \includegraphics[width=4cm]{in500}
+  \caption{Defocus series of the test object under structured coherent
+    illumination (grating period \unit[600]{nm}). The scalebar is
+    \unit[2]{$\mu$m} wide. From left to right: \unit[100]{nm},
+    \unit[200]{nm} and \unit[500]{nm} defocus.}
+  \label{fig:defocus}
+\end{figure}
+
+
+
 \bibliographystyle{plain}
 \bibliography{clempam}
 \end{document}
