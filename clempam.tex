@@ -7,7 +7,7 @@
 \usepackage{listings}
 \usepackage{color}
 \usepackage{textcomp}
-
+\usepackage{subfigure}
 \usepackage{refcheck} % for draft
 
 \definecolor{listinggray}{gray}{0.9}
@@ -32,131 +32,17 @@
         identifierstyle=\ttfamily,
         keywordstyle=\color[rgb]{0,0,1},
         commentstyle=\color[rgb]{0.133,0.545,0.133},
-        stringstyle=\color[rgb]{0.627,0.126,0.941},
+        stringstyle=\color[rgb]{0.627,0.126,0.1},
 }
 
 \newcommand{\abs}[1]{\left| #1 \right|}
 \newcommand{\avg}[1]{\langle #1 \rangle}
 \newcommand{\figref}[1]{Figure~\ref{#1}}
-
+\renewcommand{\v }[1]{\bf #1}
 \title{CLEM PAM}
 \author{Martin Kielhorn}
 
 \begin{document}
-\section{State of the Art}
-If a fluorescent plane is imaged with a fluorescence widefield
-microscope, the intensity of the image is constant no matter if the
-plane is in-focus or not. 
-\subsection{Apotome}
-Using non-uniform excitation light the Wilson group was able to
-circumvent this problem (\cite{1997Neil}). They project a grid pattern
-into the sample. For a fluorescent plane sample the modulation in the
-image is highest, when the sample is in-focus. If the plane is moved
-out of focus, the modulation decreases. Hence it is possible to achieve
-z-sectioning in a widefield microscope.
-
-For one section $I_p$ they combine three grating images $I_i$ (grating
-period $1/\nu$) with different phases:
-\begin{align}
-  I_p=\abs{I_1+I_2e^{i2\pi/3}+I_3e^{i4\pi/3}}
-  \sim\abs{ 2 \frac{J_1(2u\nu(1-\nu/2))}{u\nu(1-\nu/2)}}.
-\end{align}
-
-The last term is their result for the intensity of a fluorescent plane
-with the defocus $u$. If no grating is displayed ($\nu=0$) the
-resulting image $I_p$ is constant and the microscope has no sectioning
-capability. A fine grating gives best sectioning capability (but one
-has to make a tradeoff as a fine grating will give very low contrast
-in a thick specimen).
-
-For this method is necessary to capture three images to generate one
-sectioned slice. This can be a problem if the movement of the grating
-isn't perfect or if the object moves during these exposures.
-
-\subsection{HiLo}
-This problem is addressed by Jerome Mertz et al.\ (\cite{2008Lim},
-\cite{2009Santos}). They discovered that only two images need to be
-captured for each z-sectioned slice.
-An image with uniform illumination contains contributions
-of both in-focus and out-of-focus fluorophores:
-\begin{align}
-  I_u(x,y)=I_\textrm{in}(x,y)+I_\textrm{out}(x,y).
-\end{align}
-Due to the structure of the OTF out-of-focus light is limited to low
-spatial frequencies.
-
-The modulated part of the non-uniformly illuminated image contains only
-information of the in-focus object structure:
-\begin{align}
-  I_n(x,y)&=I_\textrm{in}(x,y)(1+M
-  \sin(\kappa x+\varphi))+I_\textrm{out}(x,y),\\
-  \kappa&=\frac{2\pi}{\lambda}n\sin(\alpha)\nu.
-\end{align}
-
-The sectioned image is a combination of high-frequency components of
-the widefield image $I_u$ and the low-frequency components of the
-modulated part of the non-uniform image $I_n$.
-
-\subsubsection{Grating}
-
-\subsubsection{Speckle}
-In the older publication (\cite{2008Lim}) a random speckle pattern is
-projected into the sample (presumably because this is experimentally
-easier than projecting a grating). For completeness I describe my
-reimplementation of their method. However I only test it on
-numerically simulated data with a projected grating.
-
-In order to process the non-uniform image it is divided into
-subregions.  As a measure of local contrast in each of these
-subregions the relative standard deviation is calculated 
-(the operator $\avg{\cdot}$ indicates averaging):
-\begin{align}
-  c_n=\frac{\sqrt{\avg{I_n^2}-\avg{I_n}^2}}{\avg{I_n}}.
-\end{align}
-The relative standard deviation $c_n$ will be zero for image regions
-without in-focus contributions. Its value increases as the modulation
-of the non-uniform illumination increases (that's what we
-want). However $c_n$ also increases if there is a small in-focus
-feature. In that we are not interested as we only want to build up an
-image of in-focus fluorophores with low spatial frequencies. To
-correct for that we refer to the most complicated part of the paper
-(in my opinion) -- its equation (4). I will repeat their argument
-here.
-
-Let $O$ be the image intensity obtained with perfectly uniform
-illumination and $S$ the image intensity for the non-uniform
-illumination a uniform object. Then the uniformly illuminated image of
-the object is:
-%FIXME Obviously I still don't understand it!
-\begin{align}
-  I_u\approx (\avg{O}+\delta O)\avg{S}.
-\end{align}
-Here the change of $I_u$ due to some object variations $\delta O$ can
-only come from in-focus contributions.
-
-\begin{align}
-\label{in}
-  I_n\approx (\avg{O}+\delta O)(\avg{S}+\delta S).
-\end{align}
-Here too, $\delta O$ and $\delta S$ come from the focus plane.
-
-Now by squaring equation \ref{in}
-\begin{align}
-  I_n^2\approx \avg{O}\avg{S} + \delta O \avg{S} +\delta S\avg{S} +
-  \delta S \delta O.
-\end{align}
-
-blablabla...
-
-Somehow it turns out that the corrected relative standard deviantion
-of the non-uniform illumination can be calculated like this:
-\begin{align} 
-  c_s^2=\frac{c_n^2-c_0^2}{1+c_0^2}.
-\end{align}
-With the relative standard deviation $c_0$ of the widefield image
-$I_u$.
-
-
 \section{On the numerical test sample}
 
 
@@ -273,14 +159,15 @@ for non-uniform illumination with the \unit[600]{nm}-period grid.
 
 \begin{figure}[htb]
   \centering
-  \includegraphics[width=4cm]{obj}
-  \includegraphics[width=4cm]{iu}
-  \includegraphics[width=4cm]{in}
-  \caption{From left to right: Slice of the object in the focal
-    plane. It consists of a line, a spherical shell and a
-    rectangle. Only the shell is extended in z. Image with widefield
-    illumination. Image with structured illumination (grating period
-    \unit[600]{nm}). The scalebar is \unit[2]{$\mu$m} wide. }
+  \subfigure[object]{\includegraphics[width=4cm]{obj}}
+  \subfigure[widefield illumination]{\includegraphics[width=4cm]{iu}}
+  \subfigure[structured illumination]{\includegraphics[width=4cm]{in}}
+  \caption{Slice of the object in the focal plane. It consists of a
+    line, a spherical shell and a rectangle. Only the shell is
+    extended in z. {\bf(a)}, Image with widefield
+    illumination. {\bf(b)}, Image with structured illumination
+    (grating period \unit[600]{nm}). {\bf(c)} The scalebar is
+    \unit[2]{$\mu$m} wide. }
   \label{fig:input}
 \end{figure}
 
@@ -290,15 +177,195 @@ the rectangle are both blurred and the contrast of the grating
 decreases.
 \begin{figure}[htb]
   \centering
-  \includegraphics[width=4cm]{in100}
-  \includegraphics[width=4cm]{in200}
-  \includegraphics[width=4cm]{in500}
+  \subfigure[100 nm defocus]{\includegraphics[width=4cm]{in100}}
+  \subfigure[200 nm]{\includegraphics[width=4cm]{in200}}
+  \subfigure[500 nm]{\includegraphics[width=4cm]{in500}}
   \caption{Defocus series of the test object under structured coherent
     illumination (grating period \unit[600]{nm}). The scalebar is
-    \unit[2]{$\mu$m} wide. From left to right: \unit[100]{nm},
-    \unit[200]{nm} and \unit[500]{nm} defocus.}
+    \unit[2]{$\mu$m} wide.}
   \label{fig:defocus}
 \end{figure}
+
+
+\section{State of the Art}
+If a fluorescent plane is imaged with a fluorescence widefield
+microscope, the intensity of the image is constant no matter if the
+plane is in-focus or not. 
+\subsection{Apotome}
+Using non-uniform excitation light the Wilson group was able to
+circumvent this problem (\cite{1997Neil}). They project a grid pattern
+into the sample. For a fluorescent plane sample the modulation in the
+image is highest, when the sample is in-focus. If the plane is moved
+out of focus, the modulation decreases. Hence it is possible to achieve
+z-sectioning in a widefield microscope.
+
+For one section $I_p$ they combine three grating images $I_i$ (grating
+period $1/\nu$) with different phases:
+\begin{align}
+  I_p=\abs{I_1+I_2e^{i2\pi/3}+I_3e^{i4\pi/3}}
+  \sim\abs{ 2 \frac{J_1(2u\nu(1-\nu/2))}{u\nu(1-\nu/2)}}.
+\end{align}
+
+The last term is their result for the intensity of a fluorescent plane
+with the defocus $u$. If no grating is displayed ($\nu=0$) the
+resulting image $I_p$ is constant and the microscope has no sectioning
+capability. A fine grating gives best sectioning capability (but one
+has to make a tradeoff as a fine grating will give very low contrast
+in a thick specimen).
+
+For this method is necessary to capture three images to generate one
+sectioned slice. This can be a problem if the movement of the grating
+isn't perfect or if the object moves during these exposures.
+
+\subsection{HiLo}
+This problem is addressed by Jerome Mertz et al.\ (\cite{2008Lim},
+\cite{2009Santos}). They discovered that only two images need to be
+captured for each z-sectioned slice.
+An image with uniform illumination contains contributions
+of both in-focus and out-of-focus fluorophores:
+\begin{align}
+  I_u(x,y)=I_\textrm{in}(x,y)+I_\textrm{out}(x,y).
+\end{align}
+Due to the structure of the OTF out-of-focus light is limited to low
+spatial frequencies.
+
+The modulated part of the non-uniformly illuminated image contains only
+information of the in-focus object structure:
+\begin{align}
+  I_n(x,y)&=I_\textrm{in}(x,y)(1+M
+  \sin(\kappa x+\varphi))+I_\textrm{out}(x,y),\\
+  \kappa&=\frac{2\pi}{\lambda}n\sin(\alpha)\nu.
+\end{align}
+
+The sectioned image is a combination of high-frequency components of
+the widefield image $I_u$ and the low-frequency components of the
+modulated part of the non-uniform image $I_n$.
+
+
+\subsubsection{Speckle}
+In the older publication (\cite{2008Lim}) a random speckle pattern is
+projected into the sample (presumably because this is experimentally
+easier than projecting a grating). For completeness I describe my
+reimplementation of their method. 
+
+In order to process the non-uniform image it is divided into
+subregions.  As a measure of local contrast in each of these
+subregions the relative standard deviation is calculated 
+(the operator $\avg{\cdot}$ indicates averaging):
+\begin{align}
+  c_n=\frac{\sqrt{\avg{I_n^2}-\avg{I_n}^2}}{\avg{I_n}}.
+\end{align}
+The relative standard deviation $c_n$ will be zero for image regions
+without in-focus contributions. Its value increases as the modulation
+of the non-uniform illumination increases (that's what we
+want). However $c_n$ also increases if there is a small in-focus
+feature. In that we are not interested as we only want to build up an
+image of in-focus fluorophores with low spatial frequencies. To
+correct for that we refer to the most complicated part of the paper
+(in my opinion) -- its equation (4). I will repeat their argument
+here.
+
+Let $O$ be the image intensity obtained with perfectly uniform
+illumination and $S$ the image intensity for the non-uniform
+illumination a uniform object. Then the uniformly illuminated image of
+the object is:
+%FIXME Obviously I still don't understand it!
+\begin{align}
+  I_u\approx (\avg{O}+\delta O)\avg{S}.
+\end{align}
+Here the change of $I_u$ due to some object variations $\delta O$ can
+only come from in-focus contributions.
+
+\begin{align}
+\label{in}
+  I_n\approx (\avg{O}+\delta O)(\avg{S}+\delta S).
+\end{align}
+Here too, $\delta O$ and $\delta S$ come from the focus plane.
+
+The authors state that a corrected relative standard deviation
+of the non-uniform illumination can be calculated like this:
+\begin{align} 
+  c_s^2=\frac{c_n^2-c_0^2}{1+c_0^2}
+  =
+  \frac{\avg{I_n^2}}{\avg{I_n}^2}
+  \frac{\avg{I_u^2}}{\avg{I_u}^2}-1.
+\end{align}
+Where $c_0$ is the relative standard deviation of the widefield image
+$I_u$. The product $I_{su}=c_s\avg{I_u}$ then provides a low
+resolution version of $I_u$ that is optically sectioned even for dc
+frequencies.
+
+The following listing shows how this algorithm can be applied to two
+square input images {\tt iu} and {\tt in}. Instead of doing a discrete
+integration over regions I multiply with a gaussian in Fourier
+space. The cutoff frequency $k_c$ of the filter is chosen low enough
+so that $c_s$ doesn't contain any structure of the grating anymore.
+\begin{lstlisting}
+si=size(in);
+n=si(1);
+kc=0.04;
+r=rr(in,'freq');
+klp=exp(-r.^2/(2*kc^2));
+khp=1-klp;
+ina=ift(ft(in).*klp);
+in2a=ift(ft(in.^2).*klp);
+iua=ift(ft(iu).*klp);
+iu2a=ift(ft(iu.^2).*klp);
+cs2=in2a.*iua.^2./(ina.^2.*iu2a)-1;
+isu=sqrt(cs2).*iua;
+kihp=ft(iu).*khp;
+kilp=ft(isu).*klp;
+\end{lstlisting}
+
+\begin{figure}[htb]
+  \centering
+  \subfigure[Corrected relative standard deviation $c_s$.]{\includegraphics[width=4cm]{cs}}
+  \subfigure[The product $I_{su}=c_sI_u$]{\includegraphics[width=4cm]{isu}}
+  \subfigure[Low spatial frequency section $I_\textrm{lp}$]{\includegraphics[width=4cm]{ilp}}
+  \caption{Several intermediate results of the algorithm. The scalebar is
+    \unit[2]{$\mu$m} wide.}
+  \label{fig:hilo1interm}
+\end{figure}
+
+
+The HiLo method combines a low-pass filtered version of $I_{su}$ with
+a high pass filtered version of the uniformly illuminated image $I_u$.
+To do this the two images are scaled for a seamless interface along
+the circle $K$ with radius $\abs{\v k_c}$ in k-space and then added:
+\begin{align}
+  \eta=\!\!\!\!\ointop_{\partial K_{k_c}}\!\!\!
+  \frac{\abs{I_\textrm{hp}}}{\abs{I_\textrm{lp}}}\,\textrm{d}\v k,\\
+  I_\textrm{hilo}=\eta I_\textrm{lp}+I_\textrm{hp}.
+\end{align}
+
+This is done in the following listing:
+\begin{lstlisting}
+ring=real(ft(besselj(0,2*pi*kc*n.*r)));
+ring2=r-1./n<kc & r+1./n>kc;
+cring=ring.*ring2;
+nring=cring./sum(cring); % normalized ring with radius kc
+eta=sum(abs(kihp)./abs(kilp).*nring);
+ihilo=ift(eta.*kilp+kihp);
+\end{lstlisting}
+
+\begin{figure}[htb]
+  \centering
+  \subfigure[High frequency components $I_\textrm{hp}$ of widefield.]{\includegraphics[width=4cm]{ihp}}
+  \subfigure[Combined images $\hat I_\textrm{hilo}$ in k-space.]{\includegraphics[width=4cm]{kihilo}}
+  \subfigure[Combined section $I_\textrm{hilo}$.]{\includegraphics[width=4cm]{ihilo}}
+  \caption{Further intermediate and the end result of the HiLo ``speckle'' algorithm. The white circle in image {\bf (b)} marks $k_c$. The scalebars are \unit[2]{$\mu$m} wide.}
+  \label{fig:hilo1interm2}
+\end{figure}
+
+\subsubsection*{Discussion}
+This algorithm only requires that the illumination intensity in $I_n$
+fluctuates over a certain region. Probably one gets better results
+when the exact illumination pattern is known and taken into account.
+
+\subsubsection{Grating}
+This is done in the next paper. 
+
+\section{Our Method}
 
 
 
