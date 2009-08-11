@@ -40,7 +40,7 @@
 \newcommand{\figref}[1]{Figure~\ref{#1}}
 \renewcommand{\v }[1]{\bf #1}
 \title{CLEM PAM}
-\author{Martin Kielhorn}
+\author{Martin Kielhorn} %Susan
 
 \begin{document}
 \section{On the numerical test sample}
@@ -224,6 +224,7 @@ captured for each z-sectioned slice.
 An image with uniform illumination contains contributions
 of both in-focus and out-of-focus fluorophores:
 \begin{align}
+\label{eqn:Iu}
   I_u(x,y)=I_\textrm{in}(x,y)+I_\textrm{out}(x,y).
 \end{align}
 Due to the structure of the OTF out-of-focus light is limited to low
@@ -232,6 +233,7 @@ spatial frequencies.
 The modulated part of the non-uniformly illuminated image contains only
 information of the in-focus object structure:
 \begin{align}
+\label{eqn:In}
   I_n(x,y)&=I_\textrm{in}(x,y)(1+M
   \sin(\kappa x+\varphi))+I_\textrm{out}(x,y),\\
   \kappa&=\frac{2\pi}{\lambda}n\sin(\alpha)\nu.
@@ -352,10 +354,11 @@ ihilo=ift(eta.*kilp+kihp);
   \centering
   \subfigure[High frequency components $I_\textrm{hp}$ of widefield.]{\includegraphics[width=4cm]{ihp}}
   \subfigure[Combined images $\hat I_\textrm{hilo}$ in k-space.]{\includegraphics[width=4cm]{kihilo}}
-  \subfigure[Combined section $I_\textrm{hilo}$.]{\includegraphics[width=4cm]{ihilo}}
+  \subfigure[Combined section $I_\textrm{hilo}$.]{\label{fig:ihilo}\includegraphics[width=4cm]{ihilo}}
   \caption{Further intermediate and the end result of the HiLo ``speckle'' algorithm. The white circle in image {\bf (b)} marks $k_c$. The scalebars are \unit[2]{$\mu$m} wide.}
   \label{fig:hilo1interm2}
 \end{figure}
+%FIXME figure out unit of kc
 
 \subsubsection*{Discussion}
 This algorithm only requires that the illumination intensity in $I_n$
@@ -363,11 +366,110 @@ fluctuates over a certain region. Probably one gets better results
 when the exact illumination pattern is known and taken into account.
 
 \subsubsection{Grating}
-This is done in the next paper. 
+The younger paper \cite{2009Santos} addresses this issue by using a
+defined pattern in the excitation illumination. Instead of random
+speckle a grating on a spatial light modulator is projected into the
+specimen (giving actually images that resemble the simulated images in
+this document).
 
-\section{Our Method}
+Starting from a widefield image $I_u$ and an image $I_n$ that has been
+illuminated with a grating they first determine the ratio $R=I_n/I_u$.
+With equations \eqref{eqn:Iu} and \eqref{eqn:In} defining the
+relationship between in-focus and out-of-focus light in both images it
+follows:
+\begin{align}
+  R&=1+CM\sin(\kappa x+\varphi)),\\
+  C&=\frac{I_\textrm{in}}{I_\textrm{in}-I_\textrm{out}}.
+\end{align}
+Here $C$ is the local image contrast (containing information similar
+to $c_s$ in the HiLo ``speckle'' method) that is necessary to
+determine the low-resolution sectioned image. The Fouriertransform
+$\hat R$ (see \figref{fig:hatR}) of the ratio contains a peak in the
+center (due to the constant 1) and at least two more peaks ($\pm 1$
+order) on the $k_x$ axis. There are a strong $\pm 1$ order and a
+weaker $\pm 2$ order as a rectangular grating is imaged into the
+sample (as opposed to a Sine grating).
+
+To extract the modulated signal a filter is constructed that selects
+only the first order on the right side of the Fouriertransform. The
+result of the filter is shown in \figref{fig:hatR+}. The intermediate
+image $I_{su}=\abs{R^+}I_u$ (see \figref{fig:isu2}) contains the
+low-resolution sectioned image.
+
+\begin{figure}[htb]
+  \centering \subfigure[Ratio
+  $R=I_n/I_u$.]{\includegraphics[width=4cm]{ratio}}
+  \subfigure[Fouriertransform $\hat
+  R$.]{\label{fig:hatR}\includegraphics[width=4cm]{ftratio}}
+  \subfigure[Filtered first order $\hat
+  R^+$.]{\label{fig:hatR+}\includegraphics[width=4cm]{filterftratio}}
+  \caption{Intermediate results for the HiLo ``ratio'' algorithm. The scalebar in (a) is \unit[2]{$\mu$m} wide.}
+  \label{fig:hilo2}
+\end{figure}
+
+The following listing shows the code for the algorithm:
+\begin{lstlisting}
+si=size(in);
+n=si(1);
+r=rr(in,'freq');
+ratio=in./iu;
+ft(ratio)
+%% select R+ and construct isu
+filter=gaussf((xx(in,'freq')>0.1) & (xx(in,'freq')<0.27),4);
+ftratio=ft(ratio);
+cm=abs(ift(filter.*ftratio));
+isu=cm.*iu
+%% calculate low pass filtered low-res section
+kc=.07;
+klp=exp(-r.^2/(2*kc^2));
+ilp=real(ift(klp.*ft(isu)))
+%% calculate high pass filtered high-res section
+ihp=real(ift((1-klp).*ft(iu)))
+%% construct the circle for integration in k-space
+ring=abs(ft(besselj(0,2*pi*kc*n.*r)));
+ring2=r-1./n<kc & r+1./n>kc;
+cring=ring.*ring2;
+nring=cring./sum(abs(cring))
+%% do the integration
+eta=sum(abs(ft(ihp))/abs(ft(ilp)).*nring)
+%% combine section
+ihilo=eta.*ilp+ihp
+\end{lstlisting}
+
+I chose the cutoff frequency $k_c$ high enough so that $I_\textrm{lp}$
+doesn't look too smooth but also low enough so that I don't loose too
+much information from the $I_\textrm{hp}$ image. The scale factor
+$\eta$ for $I_\textrm{lp}$ and $I_\textrm{hp}$ is calculated as in the
+previous section. Finally the combined sectioned image is displayed in
+\figref{fig:ihilo2}.
+
+\begin{figure}[htb]
+  \centering
+  \subfigure[$I_{su}$]{\label{fig:isu2}\includegraphics[width=4cm]{isu2}}
+  \subfigure[$I_\textrm{lp}$]{\includegraphics[width=4cm]{ilp2}}
+  \subfigure[$I_\textrm{hilo}$]{\label{fig:ihilo2}\includegraphics[width=4cm]{ihilo2}}
+  \caption{Intermediate results and the end result for the HiLo
+    ``ratio'' algorithm. The scalebars are \unit[2]{$\mu$m} wide.}
+  \label{fig:hilo2_2}
+\end{figure}
+\subsubsection*{Discussion}
+One advantage of the ``ratio'' method compared to the ``speckle''
+method is that it allows for a higher cut-off frequency $k_c$ without
+introducing artifacts in the intermediate image $I_{su}$. That
+accounts for the better appearance of the result \figref{fig:ihilo2}
+compared to \figref{fig:ihilo} (at least for this particular grating).
 
 
+Another thing that comes to mind is that the calculation of the ratio
+isn't the only way to extract the modulated signal. Another approach
+would involve subtracting the widefield image and shifting in fourier
+space (discussion with Rainer Heintzmann). This will be discussed in
+the following section.
+\section{New Method}
+
+\section{Acknowledgements}
+I thank Rainer Heintzmann and Kai Wicker for fruitfull discussions
+on k-space.
 
 \bibliographystyle{plain}
 \bibliography{clempam}
